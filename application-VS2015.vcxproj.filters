@@ -5,30 +5,39 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="headers">
+      <UniqueIdentifier>{54b55358-5ed4-4b70-94f5-3b280b217610}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="application.cpp">
+    <ClCompile Include="src\application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Player.cpp">
+    <ClCompile Include="src\Level.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Level.cpp">
+    <ClCompile Include="src\Player.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Wall.cpp">
+    <ClCompile Include="src\Room.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Wall.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Player.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="src\Wall.h">
+      <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="Level.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="src\Room.h">
+      <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="Wall.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="src\Player.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Level.h">
+      <Filter>headers</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
