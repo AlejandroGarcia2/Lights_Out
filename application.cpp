@@ -320,7 +320,8 @@ int main(int argc, char* argv[])
 		level->walls[i]->initAudio(level->audioDevice);
 	}
 
-
+	//attach audio device to camera
+	//camera->attachAudioDevice(level->audioDevice);
 	
 
     //--------------------------------------------------------------------------
@@ -557,8 +558,8 @@ void updateGraphics(double delta_t)
 	camera->set(player->body->getLocalPos() + cVector3d(0.05, 0.0, 0.00),    // camera position (eye)
 		player->body->getLocalPos(),    // look at position (target)
 		cVector3d(0.0, 0.0, 1.0));   // direction of the (up) vector
-	level->audioDevice->setListenerPos(player->cursor->getLocalPos());
-
+	camera->attachAudioDevice(level->audioDevice);
+	//level->audioDevice->setListenerPos(cVector3d(50.0, 0.0, 0.0));
 }
 
 //------------------------------------------------------------------------------
@@ -623,51 +624,3 @@ void updateHaptics(void)
     // exit haptics thread
     simulationFinished = true;
 }
-
-
-//------------------------------------------------------------------------------
-/*
-cVector3d computeForceDueToRoom(cVector3d pos)
-{
-double px = pos.x();
-double py = pos.y();
-double pz = pos.z();
-double r =  cursor->getRadius();
-
-// sign of x, y, and z used for offsets (proxy algorithm)
-double sx = 0.0, sy = 0.0, sz = 0.0;
-
-double K = 2000; // N/m
-cVector3d force = cVector3d(0.0, 0.0, 0.0);
-
-if (px < -0.015)
-{
-force += cVector3d(-K * (px + 0.015), 0.0, 0.0);
-sx = -1.0;
-}
-if (py < -0.025)
-{
-force += cVector3d(0.0, -K * (py + 0.025), 0.0);
-sy = -1.0;
-}
-if (py > 0.025)
-{
-force += cVector3d(0.0, -K * (py - 0.025), 0.0);
-sy = 1.0;
-}
-if (pz < -0.025)
-{
-force += cVector3d(0.0, 0.0, -K * (pz + 0.025));
-sz = -1.0;
-}
-if (pz > 0.025)
-{
-force += cVector3d(0.0, 0.0, -K * (pz - 0.025));
-sz = 1.0;
-}
-
-cursor->setLocalPos(cVector3d(px + sx*0.015 - sx*r, py + sy*0.025 - sy*r, pz + sz*0.025 - sz*r));
-
-return force;
-}
-*/

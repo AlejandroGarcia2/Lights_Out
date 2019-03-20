@@ -34,9 +34,9 @@ Level::Level(cWorld* world, Player* player) : world(world), player(player)
 	pos[back] = cVector3d(offset, 0.0, 0.0);
 
 	std::string audio[6];
-	audio[front] = "resources/music/mm_einsteinsWind.wav";
+	audio[front] = "resources/music/windMono.wav";
 	audio[bot] = "resources/music/mm_einsteinsBaby.wav";
-	audio[left] = "resources/music/mm_einsteinsWind.wav";
+	audio[left] = "resources/music/windMono.wav";
 	audio[right] = "resources/music/m_einsteins.wav";
 	audio[top] = "resources/music/mm_einsteinsSteps.wav";
 	audio[back] = "resources/music/mm_einsteinsWind.wav";
@@ -48,6 +48,17 @@ Level::Level(cWorld* world, Player* player) : world(world), player(player)
 	tex[right] = "resources/right.png";
 	tex[top] = "resources/top.png";
 	tex[back] = "resources/front.png";
+
+	cVector3d audioPos[6];
+	//multiplier to easily change exaggeration of position of soynds coming from walls
+	double multiplier = 3.f;
+	audioPos[front] = cVector3d(sideLength*multiplier, 0.0, 0.0);
+	audioPos[bot] = cVector3d(0.0, 0.0, -sideLength*multiplier);
+	audioPos[left] = cVector3d(0.0, -sideLength*multiplier, 0.0);
+	audioPos[right] = cVector3d(0.0, sideLength*multiplier, 0.0);
+	audioPos[top] = cVector3d(0.0, 0.0, sideLength*multiplier);
+	audioPos[back] = cVector3d(-sideLength*multiplier, 0.0, 0.0);
+
 
 
 	for (int i = 0; i < 6; i++)
@@ -69,7 +80,7 @@ Level::Level(cWorld* world, Player* player) : world(world), player(player)
 		wall->m_texture = albedoMap;
 		wall->setUseTexture(true);
 
-		walls[i] = new Wall(audio[i]);
+		walls[i] = new Wall(audio[i], audioPos[i]);
 		walls[i]->mesh = wall;
 		world->addChild(walls[i]->mesh);
 
@@ -87,6 +98,7 @@ Level::Level(cWorld* world, Player* player) : world(world), player(player)
 
 	// create an audio device to play sounds
 	audioDevice = new cAudioDevice();
+	audioDevice->setListenerPos(cVector3d(0.0, 0.0, 0.0));
 
 	// create an audio buffer and load audio wave file
 	audioBuffer = new cAudioBuffer();
@@ -105,6 +117,8 @@ Level::Level(cWorld* world, Player* player) : world(world), player(player)
 
 	// create audio source
 	audioSource = new cAudioSource();
+
+	audioSource->setSourcePos(cVector3d(0.0, 0.0, 0.0));
 
 	// assign auio buffer to audio source
 	audioSource->setAudioBuffer(audioBuffer);
@@ -126,11 +140,13 @@ Level::Level(cWorld* world, Player* player) : world(world), player(player)
 
 cVector3d Level::computeForceDueToRoom(cVector3d pos)
 {
-	double px = pos.x();
-	double py = pos.y();
-	double pz = pos.z();
 	cShapeSphere* cursor = player->cursor;
 	double r = cursor->getRadius();
+	double px = pos.x() + (pos.x() >= 0 ? r : -r);
+	double py = pos.y() + (pos.y() >= 0 ? r : -r);
+	double pz = pos.z() + (pos.z() >= 0 ? r : -r);
+	
+	
 	double o = offset;
 
 
@@ -142,12 +158,12 @@ cVector3d Level::computeForceDueToRoom(cVector3d pos)
 	if (in && !player->insideWall)
 	{
 		player->insideWall = true;
-		if (px < -o) setEar(walls[back]);
-		else if (px > o) setEar(walls[front]);
-		if (py < -o) setEar(walls[left]);
-		else if (py > o) setEar(walls[right]);
-		if (pz < -o) setEar(walls[bot]);
-		else if (pz > o) setEar(walls[top]);
+		if (px < -o) setEar(walls[back], px + o);
+		else if (px > o) setEar(walls[front], px - o);
+		if (py < -o) setEar(walls[left], py + o);
+		else if (py > o) setEar(walls[right], py - o);
+		if (pz < -o) setEar(walls[bot], pz + o);
+		else if (pz > o) setEar(walls[top], pz - o);
 	}
 	// continues to be inside wall
 	else if (in && player->insideWall)
@@ -156,38 +172,44 @@ cVector3d Level::computeForceDueToRoom(cVector3d pos)
 		{
 			force += cVector3d(-K * (px + o), 0.0, 0.0);
 			cursor->setLocalPos(cVector3d(-o + r, cursor->getLocalPos().y(), cursor->getLocalPos().z()));
+			setEar(walls[back], -o - px);
 		}
 		else if (px > o)
 		{
 			force += cVector3d(-K * (px - o), 0.0, 0.0);
 			cursor->setLocalPos(cVector3d(o - r, cursor->getLocalPos().y(), cursor->getLocalPos().z()));
+			setEar(walls[front], px - o);
 		}
 		if (py < -o)
 		{
 			force += cVector3d(0.0, -K * (py + o), 0.0);
 			cursor->setLocalPos(cVector3d(cursor->getLocalPos().x(), -o + r, cursor->getLocalPos().z()));
+			setEar(walls[left], -o - py);
 		}
 		else if (py > o)
 		{
 			force += cVector3d(0.0, -K * (py - o), 0.0);
 			cursor->setLocalPos(cVector3d(cursor->getLocalPos().x(), o - r, cursor->getLocalPos().z()));
+			setEar(walls[right], py - o);
 		}
 		if (pz < -o)
 		{
 			force += cVector3d(0.0, 0.0, -K * (pz + o));
 			cursor->setLocalPos(cVector3d(cursor->getLocalPos().x(), cursor->getLocalPos().y(), -o + r));
+			setEar(walls[bot], -o - pz);
 		}
 		else if (pz > o)
 		{
 			force += cVector3d(0.0, 0.0, -K * (pz - o));
 			cursor->setLocalPos(cVector3d(cursor->getLocalPos().x(), cursor->getLocalPos().y(), o - r));
+			setEar(walls[top], pz - o);
 		}
 	}
 	// went outside wall
 	else  if (!in && player->insideWall)
 	{
 		player->insideWall = false;
-		setEar(NULL);
+		setEar(NULL, 0);
 		
 	}
 	// continues to be outside wall
@@ -198,21 +220,29 @@ cVector3d Level::computeForceDueToRoom(cVector3d pos)
 	return force;
 }
 
-void Level::setEar(Wall* wall)
+void Level::setEar(Wall* wall, double penetration)
 {
+	
+	// 0.75cm penetration seemed a good threshold
+	if (penetration > 0.005) penetration = 0.005;
+	// Gain(volume) of the wall goes from 0 at penetration == 0.0, to 10 at penetration == 0.005, quadratically
+	double wallGain = 400000.f * penetration * penetration;
+	// Gain(volume) of the room goes from 10 at penetration == 0.0, to 0.05 at penetration == 0.005
+	double roomGain = 10.05f - wallGain;
+
 	for (int i = 0; i < 6; i++)
 	{
 		if (wall == walls[i])
 		{
-			walls[i]->audioSource->setGain(10.0);
+			walls[i]->audioSource->setGain(wallGain);
+			audioSource->setGain(roomGain);
 		}
 		else
 		{
 			walls[i]->audioSource->setGain(0.0);
 		}
 	}
-	if (wall)
-		audioSource->setGain(0.0);
-	else
-		audioSource->setGain(10.0);
+	// Took ear off the wall
+	if (wall == NULL)
+		audioSource->setGain(10.0f);
 }

@@ -3,7 +3,7 @@
 using namespace chai3d;
 using namespace std;
 
-Wall::Wall(std::string source) : source(source)
+Wall::Wall(std::string source, cVector3d audioPos) : source(source), audioPos(audioPos)
 {
 	
 }
@@ -29,7 +29,9 @@ void Wall::initAudio(cAudioDevice* audioDevice)
 	// create audio source
 	audioSource = new cAudioSource();
 
-	// assign auio buffer to audio source
+	
+
+	// assign audio buffer to audio source
 	audioSource->setAudioBuffer(audioBuffer);
 
 	// set volume
@@ -38,8 +40,6 @@ void Wall::initAudio(cAudioDevice* audioDevice)
 	// set speed at which the audio file is played. we will modulate this with the record speed.
 	audioSource->setPitch(1.0);
 
-	audioSource->setSourcePos(cVector3d(0.0, -5.0, 0.0));
-
 	// loop audio play
 	audioSource->setLoop(true);
 
@@ -47,4 +47,5 @@ void Wall::initAudio(cAudioDevice* audioDevice)
 
 	// start playing
 	audioSource->play();
+	setAudioPos(audioPos);
 }

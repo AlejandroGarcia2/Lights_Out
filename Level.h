@@ -23,7 +23,7 @@ public:
 
 	// Compute the force to constrain the cursor inside the room (the force due to the 5 planes)
 	cVector3d computeForceDueToRoom(cVector3d);
-	void setEar(Wall* wall);
+	void setEar(Wall* wall, double penetration);
 
 	Wall* walls[6];
 
