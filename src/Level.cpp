@@ -17,7 +17,7 @@ Level::Level(cWorld* world, Player* player) : player(player)
 
 	audioDevice = new cAudioDevice();
 
-	Room* room = new Room(world, audioDevice, cVector3d(0.0, 0.25, 0.0));
+	Room* room = new Room(world, audioDevice, cVector3d(0.0, 0.0, 0.0));
 	room->initAudio("resources/music/CloudSymphony.wav", audioDevice);
 	player->room = room;
 }

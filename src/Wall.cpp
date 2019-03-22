@@ -26,6 +26,11 @@ Wall::Wall(cVector3d pos, cMatrix3d rot, std::string tex)
 	albedoMap->setUseMipmaps(true);
 	mesh->m_texture = albedoMap;
 	mesh->setUseTexture(true);
+
+	mesh->setTransparencyLevel(0.0, true, true, true);
+	mesh->setUseTransparency(true);
+	mesh->setUseTexture(false);
+
 }
 
 void Wall::initAudio(std::string source, cAudioDevice* audioDevice, cVector3d audioPos)

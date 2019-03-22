@@ -61,13 +61,6 @@ Room::Room(cWorld* world, cAudioDevice* audioDevice, cVector3d position)
 		walls[i] = new Wall(pos[i] + position, rot[i], tex[i]);
 		walls[i]->initAudio(audio[i], audioDevice, audioPos[i]);
 		world->addChild(walls[i]->mesh);
-
-		if (i == 5)
-		{
-			walls[i]->mesh->setTransparencyLevel(0.0, true, true, true);
-			walls[i]->mesh->setUseTransparency(true);
-			walls[i]->mesh->setUseTexture(false);
-		}
 	}
 }
 
@@ -106,7 +99,7 @@ void Room::initAudio(std::string source, cAudioDevice* audioDevice)
 	audioSource->setPosTime(60.f);
 
 	// start playing
-	audioSource->play();
+	//audioSource->play();
 
 	setAudioPos(position);
 }
@@ -198,7 +191,7 @@ cVector3d Room::computeForceDueToRoom(cVector3d pos, Player* player)
 
 void Room::setEar(Wall* wall, double penetration)
 {
-
+	return;
 	// 0.75cm penetration seemed a good threshold
 	if (penetration > 0.005) penetration = 0.005;
 	// Gain(volume) of the wall goes from 0 at penetration == 0.0, to 10 at penetration == 0.005, quadratically

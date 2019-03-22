@@ -118,7 +118,14 @@ void updateHaptics(void);
 // this function closes the application
 void close(void);
 
-
+//pentag rm
+void move(int dir);
+bool moving;
+cVector3d movingForce;
+cPrecisionClock timer;
+cAudioDevice* ad;
+cAudioSource* as;
+cAudioBuffer* ab;
 //==============================================================================
 /*
     TEMPLATE:    application.cpp
@@ -314,6 +321,41 @@ int main(int argc, char* argv[])
 
 	level = new Level(world, player);
 
+	//pentag rm
+	ad = level->audioDevice;
+	// create an audio buffer and load audio wave file
+	ab = new cAudioBuffer();
+
+
+	bool loadStatus;
+	loadStatus = ab->loadFromFile("resources/music/doorOpenClose.wav");
+
+	// check for errors
+	if (!loadStatus)
+	{
+		cout << "Error - Sound file failed to load or initialize correctly." << endl;
+		//close();
+		//return (-1);
+	}
+
+	// create audio source
+	as = new cAudioSource();
+
+	// assign audio buffer to audio source
+	as->setAudioBuffer(ab);
+
+	// set volume
+	as->setGain(10.0);
+
+	// set speed at which the audio file is played. we will modulate this with the record speed.
+	as->setPitch(1.3);
+
+	// loop audio play
+	as->setLoop(false);
+
+	as->setPosTime(60.f);
+
+
     //--------------------------------------------------------------------------
     // WIDGETS
     //--------------------------------------------------------------------------
@@ -464,6 +506,22 @@ void keyCallback(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, 
 		{
 			movingBackwards = 1;
 		}
+		else if (a_key == GLFW_KEY_UP)
+		{
+			move(1);
+		}
+		else if (a_key == GLFW_KEY_LEFT)
+		{
+			move(2);
+		}
+		else if (a_key == GLFW_KEY_DOWN)
+		{
+			move(3);
+		}
+		else if (a_key == GLFW_KEY_RIGHT)
+		{
+			move(4);
+		}
 	}
 	else if (a_action == GLFW_RELEASE)
 	{
@@ -600,6 +658,27 @@ void updateHaptics(void)
 		force += player->room->computeForceDueToRoom(position, player);
 
 
+		if (timer.getCurrentTimeSeconds() > 1.0)
+		{
+			moving = false;
+			//force -= movingForce;
+		}
+		if (timer.getCurrentTimeSeconds() > 1.5)
+		{
+			as->stop();
+			timer.reset();
+			timer.stop();
+			std::cout << "moving\n";
+			force -= movingForce;
+		}
+		if (moving)
+		{
+			double t = timer.getCurrentTimeSeconds();
+			force += movingForce;
+			as->setSourcePos(0.5*cVector3d(t*movingForce + (1 - t)*-movingForce));
+		}
+
+
         /////////////////////////////////////////////////////////////////////
         // APPLY FORCES
         /////////////////////////////////////////////////////////////////////
@@ -613,4 +692,32 @@ void updateHaptics(void)
     
     // exit haptics thread
     simulationFinished = true;
+}
+
+void move(int dir)
+{
+	std::cout << "MOVE!" << std::endl;
+	double moveForce = 5;
+	if (!moving)
+	{
+		timer.start();
+		as->play();
+		moving = true;
+		switch (dir)
+		{
+		case 1:
+			movingForce = cVector3d(moveForce*2.5, 0.0, 0.0);
+			break;
+		case 2:
+			movingForce = cVector3d(0.0, moveForce, 0.0);
+			break;
+		case 3:
+			movingForce = cVector3d(-moveForce*2.5, 0.0, 0.0);
+			break;
+		case 4:
+			movingForce = cVector3d(00.0, -moveForce, 0.0);
+			break;
+			
+		}
+	}
 }
