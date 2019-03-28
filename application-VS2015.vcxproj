@@ -21,12 +21,16 @@
   <ItemGroup>
     <ClCompile Include="src\application.cpp" />
     <ClCompile Include="src\Level.cpp" />
+    <ClCompile Include="src\MyMaterial.cpp" />
+    <ClCompile Include="src\MyProxyAlgorithm.cpp" />
     <ClCompile Include="src\Player.cpp" />
     <ClCompile Include="src\Room.cpp" />
     <ClCompile Include="src\Wall.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Level.h" />
+    <ClInclude Include="src\MyMaterial.h" />
+    <ClInclude Include="src\MyProxyAlgorithm.h" />
     <ClInclude Include="src\Player.h" />
     <ClInclude Include="src\Room.h" />
     <ClInclude Include="src\Wall.h" />

@@ -17,16 +17,20 @@ class Player;
 class Room
 {
 public:
-	Room(cWorld*, cAudioDevice*, cVector3d);
+	Room(cWorld*, cAudioDevice*, cVector3d, bool[6]);
 	void initAudio(std::string source, cAudioDevice* audioDevice);
 	void setAudioPos(cVector3d pos) { audioSource->setSourcePos(pos); };
+	
 
 	// Compute the force to constrain the cursor inside the room (the force due to the 6 planes)
 	cVector3d computeForceDueToRoom(cVector3d, Player*);
 	void setEar(Wall* wall, double penetration);
+	int numIntersections(cVector3d a, cVector3d b);
 
 	Wall* walls[6];
 	Room* rooms[4];
+
+	static double sideLengthX, sideLengthY, sideLengthZ, scaleFactor;
 
 	cAudioBuffer* audioBuffer;
 	cAudioSource* audioSource;

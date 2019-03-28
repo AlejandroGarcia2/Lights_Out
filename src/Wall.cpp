@@ -5,27 +5,26 @@
 using namespace chai3d;
 using namespace std;
 
-double Wall::scaleFactor = 1.0;
-double Wall::sideLength = 0.025 * scaleFactor;
 
-Wall::Wall(cVector3d pos, cMatrix3d rot, std::string tex)
+
+Wall::Wall(cVector3d pos, cMatrix3d rot, std::string tex, double w, double h)
 {
 	mesh = new cMesh();
 
-	cCreatePlane(mesh, sideLength, sideLength, pos, rot);
+	cCreatePlane(mesh, w, h, pos, rot);
 	mesh->createAABBCollisionDetector(0.01);
 	mesh->computeBTN();
 	mesh->m_material = cMaterial::create();
 	mesh->m_material->setWhite();
 	mesh->m_material->setUseHapticShading(true);
 	mesh->setStiffness(1000.0, true);
-	cTexture2dPtr albedoMap = cTexture2d::create();
-	albedoMap->loadFromFile(tex);
-	albedoMap->setWrapModeS(GL_REPEAT);
-	albedoMap->setWrapModeT(GL_REPEAT);
-	albedoMap->setUseMipmaps(true);
-	mesh->m_texture = albedoMap;
-	mesh->setUseTexture(true);
+	//cTexture2dPtr albedoMap = cTexture2d::create();
+	//albedoMap->loadFromFile(tex);
+	//albedoMap->setWrapModeS(GL_REPEAT);
+	//albedoMap->setWrapModeT(GL_REPEAT);
+	//albedoMap->setUseMipmaps(true);
+	//mesh->m_texture = albedoMap;
+	//mesh->setUseTexture(true);
 }
 
 void Wall::initAudio(std::string source, cAudioDevice* audioDevice, cVector3d audioPos)
@@ -67,4 +66,22 @@ void Wall::initAudio(std::string source, cAudioDevice* audioDevice, cVector3d au
 	audioSource->play();
 
 	setAudioPos(audioPos);
+}
+
+void Wall::setVisible(bool a)
+{
+	if (!a)
+	{
+		mesh->setTransparencyLevel(0.0, true, true, true);
+		mesh->setUseTransparency(true);
+		mesh->setUseTexture(false);
+		active = false;
+	}
+	else
+	{
+		mesh->setTransparencyLevel(100.0, true, true, true);
+		mesh->setUseTransparency(false);
+		mesh->setUseTexture(true);
+		active = true;
+	}
 }

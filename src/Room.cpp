@@ -1,32 +1,39 @@
 #pragma once
 
+
 #include "Room.h"
 #include "Player.h"
 
 using namespace chai3d;
 using namespace std;
 
-Room::Room(cWorld* world, cAudioDevice* audioDevice, cVector3d position)
+double Room::scaleFactor = 1.0;
+double Room::sideLengthX = 0.025 * scaleFactor;
+double Room::sideLengthY = 0.025 * scaleFactor;
+double Room::sideLengthZ = 0.001 * scaleFactor;
+
+Room::Room(cWorld* world, cAudioDevice* audioDevice, cVector3d position, bool activated[6]) : position(position)
 {
 	cMatrix3d rot[6];
 	double t = M_PI / 2.;
 	rot[front] = cMatrix3d(cos(t), 0, sin(t), 0, 1, 0, -sin(t), 0, cos(t));
 	rot[left] = cMatrix3d(cos(t), -sin(t), 0, sin(t), cos(t), 0, 0, 0, 1) * rot[0];
 	rot[right] = cMatrix3d(cos(-t), -sin(-t), 0, sin(-t), cos(-t), 0, 0, 0, 1) * rot[0];
-	rot[top] = cMatrix3d(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+	rot[top] = rot[0] * rot[0];
 	rot[bot] = cMatrix3d(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
-	rot[back] = cMatrix3d(cos(t), 0, sin(t), 0, 1, 0, -sin(t), 0, cos(t));
+	rot[back] = cMatrix3d(cos(-t), 0, sin(-t), 0, 1, 0, -sin(-t), 0, cos(-t));
 
-	Wall::scaleFactor = 1.0;
-	Wall::sideLength = 0.025 * Wall::scaleFactor;
-	double offset = Wall::sideLength / 2.0;
+
+	double offsetX = Room::sideLengthX / 2.0;
+	double offsetY = Room::sideLengthY / 2.0;
+	double offsetZ = Room::sideLengthZ / 2.0;
 	cVector3d pos[6];
-	pos[front] = cVector3d(-offset, 0.0, 0.0);
-	pos[bot] = cVector3d(0.0, 0.0, -offset);
-	pos[left] = cVector3d(0.0, -offset, 0.0);
-	pos[right] = cVector3d(0.0, offset, 0.0);
-	pos[top] = cVector3d(0.0, 0.0, offset);
-	pos[back] = cVector3d(offset, 0.0, 0.0);
+	pos[front] = cVector3d(-offsetX, 0.0, 0.0);
+	pos[bot] = cVector3d(0.0, 0.0, -offsetZ);
+	pos[left] = cVector3d(0.0, -offsetY, 0.0);
+	pos[right] = cVector3d(0.0, offsetY, 0.0);
+	pos[top] = cVector3d(0.0, 0.0, offsetZ);
+	pos[back] = cVector3d(offsetX, 0.0, 0.0);
 
 	std::string audio[6];
 	audio[front] = "resources/music/windMono.wav";
@@ -47,28 +54,34 @@ Room::Room(cWorld* world, cAudioDevice* audioDevice, cVector3d position)
 	cVector3d audioPos[6];
 	//multiplier to easily change exaggeration of position of soynds coming from walls
 	double multiplier = 3.f;
-	audioPos[front] = cVector3d(Wall::sideLength*multiplier, 0.0, 0.0);
-	audioPos[bot] = cVector3d(0.0, 0.0, -Wall::sideLength*multiplier);
-	audioPos[left] = cVector3d(0.0, -Wall::sideLength*multiplier, 0.0);
-	audioPos[right] = cVector3d(0.0, Wall::sideLength*multiplier, 0.0);
-	audioPos[top] = cVector3d(0.0, 0.0, Wall::sideLength*multiplier);
-	audioPos[back] = cVector3d(-Wall::sideLength*multiplier, 0.0, 0.0);
+	audioPos[front] = cVector3d(Room::sideLengthX*multiplier, 0.0, 0.0);
+	audioPos[bot] = cVector3d(0.0, 0.0, -Room::sideLengthZ*multiplier);
+	audioPos[left] = cVector3d(0.0, -Room::sideLengthY*multiplier, 0.0);
+	audioPos[right] = cVector3d(0.0, Room::sideLengthY*multiplier, 0.0);
+	audioPos[top] = cVector3d(0.0, 0.0, Room::sideLengthZ*multiplier);
+	audioPos[back] = cVector3d(-Room::sideLengthX*multiplier, 0.0, 0.0);
 
 
 
 	for (int i = 0; i < 6; i++)
 	{
-		walls[i] = new Wall(pos[i] + position, rot[i], tex[i]);
-		walls[i]->initAudio(audio[i], audioDevice, audioPos[i]);
-		world->addChild(walls[i]->mesh);
-
-		if (i == 5)
+		if (activated[i])
 		{
-			walls[i]->mesh->setTransparencyLevel(0.0, true, true, true);
-			walls[i]->mesh->setUseTransparency(true);
-			walls[i]->mesh->setUseTexture(false);
+			if (i == front || i == back)
+				walls[i] = new Wall(pos[i] + position, rot[i], tex[i], Room::sideLengthZ, Room::sideLengthY);
+			else if (i == left || i == right)
+				walls[i] = new Wall(pos[i] + position, rot[i], tex[i], Room::sideLengthZ, Room::sideLengthY);
+			else
+				walls[i] = new Wall(pos[i] + position, rot[i], tex[i], Room::sideLengthX, Room::sideLengthY);
+
+			walls[i]->initAudio(audio[i], audioDevice, audioPos[i]);
+			if (i == top)
+				walls[i]->setVisible(false);
+
+			world->addChild(walls[i]->mesh);
 		}
 	}
+
 }
 
 void Room::initAudio(std::string source, cAudioDevice* audioDevice)
@@ -114,7 +127,7 @@ void Room::initAudio(std::string source, cAudioDevice* audioDevice)
 
 cVector3d Room::computeForceDueToRoom(cVector3d pos, Player* player)
 {
-	cShapeSphere* cursor = player->cursor;
+	/*cShapeSphere* cursor = player->cursor;
 
 	
 	double r = cursor->getRadius();
@@ -144,37 +157,37 @@ cVector3d Room::computeForceDueToRoom(cVector3d pos, Player* player)
 	// continues to be inside wall
 	else if (in && player->insideWall)
 	{
-		if (px < -o)
+		if (px < -o && walls[back]->active)
 		{
 			force += cVector3d(-K * (px + o), 0.0, 0.0);
 			cursor->setLocalPos(cVector3d(-o + r, cursor->getLocalPos().y(), cursor->getLocalPos().z()));
 			setEar(walls[back], -o - px);
 		}
-		else if (px > o)
+		else if (px > o && walls[front]->active)
 		{
 			force += cVector3d(-K * (px - o), 0.0, 0.0);
 			cursor->setLocalPos(cVector3d(o - r, cursor->getLocalPos().y(), cursor->getLocalPos().z()));
 			setEar(walls[front], px - o);
 		}
-		if (py < -o)
+		if (py < -o && walls[left]->active)
 		{
 			force += cVector3d(0.0, -K * (py + o), 0.0);
 			cursor->setLocalPos(cVector3d(cursor->getLocalPos().x(), -o + r, cursor->getLocalPos().z()));
 			setEar(walls[left], -o - py);
 		}
-		else if (py > o)
+		else if (py > o && walls[right]->active)
 		{
 			force += cVector3d(0.0, -K * (py - o), 0.0);
 			cursor->setLocalPos(cVector3d(cursor->getLocalPos().x(), o - r, cursor->getLocalPos().z()));
 			setEar(walls[right], py - o);
 		}
-		if (pz < -o)
+		if (pz < -o && walls[bot]->active)
 		{
 			force += cVector3d(0.0, 0.0, -K * (pz + o));
 			cursor->setLocalPos(cVector3d(cursor->getLocalPos().x(), cursor->getLocalPos().y(), -o + r));
 			setEar(walls[bot], -o - pz);
 		}
-		else if (pz > o)
+		else if (pz > o && walls[top]->active)
 		{
 			force += cVector3d(0.0, 0.0, -K * (pz - o));
 			cursor->setLocalPos(cVector3d(cursor->getLocalPos().x(), cursor->getLocalPos().y(), o - r));
@@ -193,12 +206,13 @@ cVector3d Room::computeForceDueToRoom(cVector3d pos, Player* player)
 	{
 	}
 
-	return force;
+	return force;*/
+	return cVector3d(0.0, 0.0, 0.0);
 }
 
 void Room::setEar(Wall* wall, double penetration)
 {
-
+	return;
 	// 0.75cm penetration seemed a good threshold
 	if (penetration > 0.005) penetration = 0.005;
 	// Gain(volume) of the wall goes from 0 at penetration == 0.0, to 10 at penetration == 0.005, quadratically
@@ -221,4 +235,10 @@ void Room::setEar(Wall* wall, double penetration)
 	// Took ear off the wall
 	if (wall == NULL)
 		audioSource->setGain(10.0f);
+}
+
+// Return the number of wall intersections from point a to point b
+int Room::numIntersections(cVector3d a, cVector3d b)
+{
+	return 0;
 }

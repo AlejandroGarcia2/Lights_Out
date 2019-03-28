@@ -13,9 +13,12 @@ class Level
 public:
 
 	Level(cWorld*, Player*);
+	void createMazeFromFile(cWorld*,std::string);
 
 	// audio device to play sound
 	cAudioDevice* audioDevice;
+
+	
 
 	Player* player;
 	vector<Room*> rooms;

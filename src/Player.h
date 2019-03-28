@@ -4,20 +4,23 @@
 
 using namespace chai3d;
 
+class Level;
+
 class Player 
 {
 public:
 
-	Player(cVector3d, cShapeSphere*, cWorld*);
+	Player(cVector3d, cToolCursor*, cWorld*);
 	void translate(cVector3d, double);
 	cShapeBox* body;
 	cShapeSphere* head;
-	cShapeSphere* cursor;
+	cToolCursor* tool;
 	//arm displacement
 	cVector3d armDisplacement;
+	cShapeLine* arm;
 
 	//The room in which we are
-	Room* room;
+	int getRoom(Level*);
 
 	double speed; // m/s
 	bool insideWall;

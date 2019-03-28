@@ -6,10 +6,13 @@
 
 //------------------------------------------------------------------------------
 #include "chai3d.h"
+#include "MyProxyAlgorithm.h"
+#include "MyMaterial.h"
 //------------------------------------------------------------------------------
 #include <GLFW/glfw3.h>
 #include "Player.h"
 #include "Level.h"
+
 //------------------------------------------------------------------------------
 using namespace chai3d;
 using namespace std;
@@ -63,6 +66,13 @@ cLabel* labelRates;
 // a small sphere (cursor) representing the haptic device 
 cShapeSphere* cursor;
 
+// a small sphere (cursor) representing the haptic device 
+cToolCursor* tool;
+
+// a pointer to the custom proxy rendering algorithm inside the tool
+MyProxyAlgorithm* proxyAlgorithm;
+
+
 // flag to indicate if the haptic simulation currently running
 bool simulationRunning = false;
 
@@ -94,6 +104,7 @@ int movingRight = 0;
 int movingLeft = 0;
 int movingBackwards = 0;
 int movingForwards = 0;
+bool hint = false;
 
 
 //------------------------------------------------------------------------------
@@ -263,11 +274,14 @@ int main(int argc, char* argv[])
     // define direction of light beam
     light->setDir(-1.0, 0.0, 0.0); 
 
+	// use a point avatar for this scene
+	double toolRadius = 0.0;
+
     // create a sphere (cursor) to represent the haptic device
     cursor = new cShapeSphere(0.001);
 
     // insert cursor inside world
-    world->addChild(cursor);
+    //world->addChild(cursor);
 
 
     //--------------------------------------------------------------------------
@@ -280,6 +294,32 @@ int main(int argc, char* argv[])
     // get a handle to the first haptic device
     handler->getDevice(hapticDevice, 0);
 
+	// if the device has a gripper, enable the gripper to simulate a user switch
+	hapticDevice->setEnableGripperUserSwitch(true);
+
+	/////////////////////////////////////////////////////////////
+	tool = new cToolCursor(world);
+	world->addChild(tool);
+	//tool->translate(0.0, 0.1, 0.0);
+
+
+	// [CPSC.86] replace the tool's proxy rendering algorithm with our own
+	proxyAlgorithm = new MyProxyAlgorithm;
+	delete tool->m_hapticPoint->m_algorithmFingerProxy;
+	tool->m_hapticPoint->m_algorithmFingerProxy = proxyAlgorithm;
+
+	tool->m_hapticPoint->m_sphereProxy->m_material->setWhite();
+
+	tool->setRadius(0.001, toolRadius);
+
+	tool->setHapticDevice(hapticDevice);
+
+	tool->setWaitForSmallForce(true);
+
+	tool->start();
+	/////////////////////////////////////////////////////////////
+
+	/*
     // open a connection to haptic device
     hapticDevice->open();
 
@@ -301,12 +341,13 @@ int main(int argc, char* argv[])
 
     // if the device has a gripper, enable the gripper to simulate a user switch
     hapticDevice->setEnableGripperUserSwitch(true);
+	*/
 
 	//--------------------------------------------------------------------------
 	// PLAYER
 	//--------------------------------------------------------------------------
 
-	player = new Player(cVector3d(0.0, 0.0, 0.0), cursor, world);
+	player = new Player(cVector3d(0.0, 0.0, 0.0), tool, world);
 
 	//--------------------------------------------------------------------------
 	// Level
@@ -448,40 +489,48 @@ void keyCallback(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, 
 			mirroredDisplay = !mirroredDisplay;
 			camera->setMirrorVertical(mirroredDisplay);
 		}
-		else if (a_key == GLFW_KEY_D)
+		else if (a_key == GLFW_KEY_D || a_key == GLFW_KEY_RIGHT)
 		{
 			movingRight = 1;
 		}
-		else if (a_key == GLFW_KEY_A)
+		else if (a_key == GLFW_KEY_A || a_key == GLFW_KEY_LEFT)
 		{
 			movingLeft = -1;
 		}
-		else if (a_key == GLFW_KEY_W)
+		else if (a_key == GLFW_KEY_W || a_key == GLFW_KEY_UP)
 		{
 			movingForwards = -1;
 		}
-		else if (a_key == GLFW_KEY_S)
+		else if (a_key == GLFW_KEY_S || a_key == GLFW_KEY_DOWN)
 		{
 			movingBackwards = 1;
+		}
+		else if (a_key == GLFW_KEY_SPACE)
+		{
+			hint = true;
 		}
 	}
 	else if (a_action == GLFW_RELEASE)
 	{
-		if (a_key == GLFW_KEY_D)
+		if (a_key == GLFW_KEY_D || a_key == GLFW_KEY_RIGHT)
 		{
 			movingRight = 0;
 		}
-		else if (a_key == GLFW_KEY_A)
+		else if (a_key == GLFW_KEY_A || a_key == GLFW_KEY_LEFT)
 		{
 			movingLeft = 0;
 		}
-		else if (a_key == GLFW_KEY_W)
+		else if (a_key == GLFW_KEY_W || a_key == GLFW_KEY_UP)
 		{
 			movingForwards = 0;
 		}
-		else if (a_key == GLFW_KEY_S)
+		else if (a_key == GLFW_KEY_S || a_key == GLFW_KEY_DOWN)
 		{
 			movingBackwards = 0;
+		}
+		else if (a_key == GLFW_KEY_SPACE)
+		{
+			hint = false;
 		}
 	}
 }
@@ -512,10 +561,12 @@ void updateGraphics(double delta_t)
     /////////////////////////////////////////////////////////////////////
     // UPDATE WIDGETS
     /////////////////////////////////////////////////////////////////////
+	std::string debug = cStr(proxyAlgorithm->m_debugValue); +" " + cStr(proxyAlgorithm->m_debugVector.x()) +
+		" " + cStr(proxyAlgorithm->m_debugVector.y()) + " " + cStr(proxyAlgorithm->m_debugVector.z());
 
     // update haptic and graphic rate data
     labelRates->setText(cStr(freqCounterGraphics.getFrequency(), 0) + " Hz / " +
-        cStr(freqCounterHaptics.getFrequency(), 0) + " Hz");
+        cStr(freqCounterHaptics.getFrequency(), 0) + " Hz debug" + debug);
 
     // update position of label
     labelRates->setLocalPos((int)(0.5 * (width - labelRates->getWidth())), 15);
@@ -545,72 +596,185 @@ void updateGraphics(double delta_t)
 
 	//std::cout << "forward: " << movingForwards << "left: " << movingLeft << "down: " << movingBackwards << "right: " << movingRight << std::endl;
 	player->translate(cVector3d(movingForwards+movingBackwards, movingRight+movingLeft, 0), delta_t);
-	camera->set(player->body->getLocalPos() + cVector3d(0.05, 0.0, 0.00),    // camera position (eye)
+	camera->set(player->body->getLocalPos() + cVector3d(0.05, 0.0, 0.05),    // camera position (eye)
 		player->body->getLocalPos(),    // look at position (target)
 		cVector3d(0.0, 0.0, 1.0));   // direction of the (up) vector
-	camera->attachAudioDevice(level->audioDevice);
+	//camera->attachAudioDevice(level->audioDevice);
 	//level->audioDevice->setListenerPos(cVector3d(50.0, 0.0, 0.0));
+	tool->setLocalPos(player->body->getLocalPos() + player->armDisplacement);
+	
 }
 
 //------------------------------------------------------------------------------
 
 void updateHaptics(void)
 {
-    // simulation in now running
-    simulationRunning  = true;
-    simulationFinished = false;
+	// simulation in now running
+	simulationRunning = true;
+	simulationFinished = false;
 
-    // main haptic simulation loop
-    while(simulationRunning)
-    {
-        /////////////////////////////////////////////////////////////////////
-        // READ HAPTIC DEVICE
-        /////////////////////////////////////////////////////////////////////
+	int curRoom = 0;
 
-        // read position 
-        cVector3d position;
-        hapticDevice->getPosition(position);
+	std::string sorc[5];
+	sorc[0] = "resources/music/april.wav";
+	sorc[1] = "resources/music/april1.wav";
+	sorc[2] = "resources/music/april2.wav";
+	sorc[3] = "resources/music/april3.wav";
+	sorc[4] = "resources/music/april4.wav";
 
-        // read orientation 
-        cMatrix3d rotation;
-        hapticDevice->getRotation(rotation);
+	cAudioBuffer* buff[5];
+	cAudioSource* source[5];
 
-        // read user-switch status (button 0)
-        bool button = false;
-        hapticDevice->getUserSwitch(0, button);
+	for (int i = 0; i < 5; i++)
+	{
+		buff[i] = new cAudioBuffer();
 
 
-        /////////////////////////////////////////////////////////////////////
-        // UPDATE 3D CURSOR MODEL
-        /////////////////////////////////////////////////////////////////////
+		bool loadStatus;
+		loadStatus = buff[i]->loadFromFile(sorc[i]);
 
-        // update position and orienation of cursor
-		position + player->body->getLocalPos() + player->armDisplacement;
-		cursor->setLocalPos(position);
-        cursor->setLocalRot(rotation);
+		// check for errors
+		if (!loadStatus)
+		{
+			cout << "Error - Sound file failed to load or initialize correctly." << endl;
+			//close();
+			//return (-1);
+		}
 
-        /////////////////////////////////////////////////////////////////////
-        // COMPUTE FORCES
-        /////////////////////////////////////////////////////////////////////
+		// create audio source
+		source[i] = new cAudioSource();
 
-        cVector3d force(0, 0, 0);
-        cVector3d torque(0, 0, 0);
-        double gripperForce = 0.0;
+		// assign audio buffer to audio source
+		source[i]->setAudioBuffer(buff[i]);
 
-		force += player->room->computeForceDueToRoom(position, player);
+		// set volume
+		source[i]->setGain(0.0);
+
+		// set speed at which the audio file is played. we will modulate this with the record speed.
+		source[i]->setPitch(1.0);
+
+		// loop audio play
+		source[i]->setLoop(true);
+
+		source[i]->setPosTime(60.f);
+
+		source[i]->setSourcePos(level->rooms[12]->position);
+
+		// start playing
+		source[i]->play();
+	}
+
+	// main haptic simulation loop
+	while (simulationRunning)
+	{
+		/////////////////////////////////////////////////////////////////////
+		// READ HAPTIC DEVICE
+		/////////////////////////////////////////////////////////////////////
+
+		// read position 
+		cVector3d position;
+		hapticDevice->getPosition(position);
 
 
-        /////////////////////////////////////////////////////////////////////
-        // APPLY FORCES
-        /////////////////////////////////////////////////////////////////////
+		// read orientation 
+		cMatrix3d rotation;
+		hapticDevice->getRotation(rotation);
 
-        // send computed force, torque, and gripper force to haptic device
-        hapticDevice->setForceAndTorqueAndGripperForce(force, torque, gripperForce);
+		// read user-switch status (button 0)
+		bool button = false;
+		hapticDevice->getUserSwitch(0, button);
 
-        // signal frequency counter
-        freqCounterHaptics.signal(1);
-    }
-    
-    // exit haptics thread
-    simulationFinished = true;
+
+		world->computeGlobalPositions(); 
+
+
+		/////////////////////////////////////////////////////////////////////
+		// UPDATE 3D CURSOR MODEL
+		/////////////////////////////////////////////////////////////////////
+
+		tool->updateFromDevice();
+		level->audioDevice->setListenerPos(tool->getLocalPos());
+
+
+		/////////////////////////////////////////////////////////////////////
+		// COMPUTE FORCES
+		/////////////////////////////////////////////////////////////////////
+
+		tool->computeInteractionForces();
+		if (!hint)
+		{
+			level->audioDevice->setListenerPos(tool->getLocalPos() + tool->getDeviceLocalPos());
+			double lvl = 0.1 - ((tool->getLocalPos() + tool->getDeviceLocalPos()) - level->rooms[12]->position).length();
+			if (lvl < 0) lvl = 0.f;
+			//cout << lvl << endl;
+			//level->rooms[12]->audioSource->setGain(lvl);
+			//for (int i = 0; i < 5; i++)
+			//{
+			//	source[i]->setGain(lvl);
+			//}
+
+		}
+		else
+		{
+			level->audioDevice->setListenerPos(level->rooms[12]->audioSource->getSourcePos());
+			//level->rooms[12]->audioSource->setGain(0.1);
+			//for (int i = 0; i < 5; i++)
+			//{
+			//	source[i]->setGain(0.1);
+			//}
+		}
+
+		int r = player->getRoom(level);
+		//cout << r << endl;
+		if (curRoom != r)
+		{
+			cout << "change" << endl;
+			curRoom = r;
+
+			for (int i = 0; i < 5; i++)
+			{
+				source[i]->setGain(0.0f);
+			}
+			switch (r)
+			{
+			case 0: source[4]->setGain(0.1f); break;
+			case 1: source[3]->setGain(0.1f); break;
+			case 2: source[3]->setGain(0.1f); break;
+			case 3: source[4]->setGain(0.1f); break;
+			case 4: source[3]->setGain(0.1f); break;
+			case 5: source[3]->setGain(0.1f); break;
+			case 6: source[2]->setGain(0.1f); break;
+			case 7: source[2]->setGain(0.1f); break;
+			case 8: source[1]->setGain(0.1f); break;
+			case 9: source[1]->setGain(0.1f); break;
+			case 10: source[2]->setGain(0.1f); break;
+			case 11: source[1]->setGain(0.1f); break;
+			case 12: source[0]->setGain(0.1f); break;
+			case 13: source[0]->setGain(0.1f); break;
+			case 14: source[0]->setGain(0.1f); break;
+			case 15: source[0]->setGain(0.1f); break;
+			}
+		}
+
+		
+
+
+		cVector3d force(0, 0, 0);
+		cVector3d torque(0, 0, 0);
+		double gripperForce = 0.0;
+
+
+		/////////////////////////////////////////////////////////////////////
+		// APPLY FORCES
+		/////////////////////////////////////////////////////////////////////
+
+
+		tool->applyToDevice();
+
+		// signal frequency counter
+		freqCounterHaptics.signal(1);
+	}
+
+	// exit haptics thread
+	simulationFinished = true;
 }
