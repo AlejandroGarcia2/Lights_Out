@@ -347,3 +347,5 @@ MigrationBackup/
 
 *.vc.db
 *.tlog
+
+obj/Release/*

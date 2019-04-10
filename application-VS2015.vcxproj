@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\application.cpp" />
+    <ClCompile Include="src\AudioFile.cpp" />
     <ClCompile Include="src\Level.cpp" />
     <ClCompile Include="src\MyMaterial.cpp" />
     <ClCompile Include="src\MyProxyAlgorithm.cpp" />
@@ -28,6 +29,8 @@
     <ClCompile Include="src\Wall.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\audio.h" />
+    <ClInclude Include="src\AudioFile.h" />
     <ClInclude Include="src\Level.h" />
     <ClInclude Include="src\MyMaterial.h" />
     <ClInclude Include="src\MyProxyAlgorithm.h" />
@@ -234,7 +237,7 @@
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>../../src;../../external/Eigen;../../external/glew/include;../../extras/glfw/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../src;../../external/Eigen;../../external/glew/include;../../extras/glfw/include;../../external/openal;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN64;NDEBUG;_CONSOLE;_MSVC;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>

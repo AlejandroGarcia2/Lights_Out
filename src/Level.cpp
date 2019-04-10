@@ -59,7 +59,7 @@ void Level::createMazeFromFile(cWorld* world, string path)
 				Room* room = new Room(world, audioDevice, cVector3d(-Room::sideLengthX*i, Room::sideLengthY*j, 0.0), activated[roomCounter]);
 				if (i == 3 && j == 0)
 				{
-					room->initAudio("resources/music/april.wav", audioDevice);
+					room->initAudio("resources/music/aprilHaptic.wav", audioDevice);
 				}
 				
 				rooms.push_back(room);

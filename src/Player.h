@@ -12,16 +12,24 @@ public:
 
 	Player(cVector3d, cToolCursor*, cWorld*);
 	void translate(cVector3d, double);
-	cShapeBox* body;
-	cShapeSphere* head;
-	cToolCursor* tool;
-	//arm displacement
-	cVector3d armDisplacement;
-	cShapeLine* arm;
-
+	cVector3d translateThroughDevice(double delta_t);
 	//The room in which we are
 	int getRoom(Level*);
+	void toggleEarOnWall();
+	void initAudio(std::string source, cAudioDevice* audioDevice);
 
+
+	//Pos of the actual physical haptic tip in the world
+	cVector3d getPhysicalPosition();
+	//Pos of the proxy in the world
+	cVector3d getPosition();
+
+
+
+	cToolCursor* tool;
+	//arm displacement
 	double speed; // m/s
-	bool insideWall;
+	bool earUpAgainstWall;
+	cAudioBuffer* wallSoundBuffer;
+	cAudioSource* wallSoundSource;
 };

@@ -31,6 +31,9 @@
     <ClCompile Include="src\MyMaterial.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\AudioFile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Wall.h">
@@ -49,6 +52,12 @@
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="src\MyProxyAlgorithm.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\audio.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AudioFile.h">
       <Filter>headers</Filter>
     </ClInclude>
   </ItemGroup>
