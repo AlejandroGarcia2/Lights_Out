@@ -14,6 +14,20 @@ public:
 
 	Level(cWorld*, Player*);
 	void createMazeFromFile(cWorld*,std::string);
+	void initAudio();
+	void startAudio();
+	double getInBoundsX(double);
+	double getInBoundsY(double);
+
+	cAudioBuffer* buffers[5];
+	cAudioSource* sources[5];
+
+	cAudioBuffer* effectBuffers[3];
+	cAudioSource* effectSources[3];
+
+	int sourceTarget;
+	double sourceTargetValue;
+	cPrecisionClock *playTime;
 
 	// audio device to play sound
 	cAudioDevice* audioDevice;

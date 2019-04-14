@@ -25,13 +25,13 @@
     <ClCompile Include="src\Wall.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\MyProxyAlgorithm.cpp">
+    <ClCompile Include="src\AudioFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\MyMaterial.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\AudioFile.cpp">
+    <ClCompile Include="src\MyProxyAlgorithm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -48,16 +48,13 @@
     <ClInclude Include="src\Level.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="src\AudioFile.h">
+      <Filter>headers</Filter>
+    </ClInclude>
     <ClInclude Include="src\MyMaterial.h">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="src\MyProxyAlgorithm.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="src\audio.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="src\AudioFile.h">
       <Filter>headers</Filter>
     </ClInclude>
   </ItemGroup>

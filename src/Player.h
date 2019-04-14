@@ -16,8 +16,8 @@ public:
 	//The room in which we are
 	int getRoom(Level*);
 	void toggleEarOnWall();
-	void initAudio(std::string source, cAudioDevice* audioDevice);
-
+	void initAudio(std::string file, cAudioDevice* audioDevice);
+	void handleFootsteps(cAudioDevice*);
 
 	//Pos of the actual physical haptic tip in the world
 	cVector3d getPhysicalPosition();
@@ -25,11 +25,16 @@ public:
 	cVector3d getPosition();
 
 
-
+	//Index of the room we are in
+	int room;
 	cToolCursor* tool;
 	//arm displacement
 	double speed; // m/s
 	bool earUpAgainstWall;
 	cAudioBuffer* wallSoundBuffer;
 	cAudioSource* wallSoundSource;
+
+	bool footstepsPlaying, startPlayingFootsteps, stopPlayingFootsteps;
+	cAudioBuffer* footstepsSoundBuffer;
+	cAudioSource* footstepsSoundSource;
 };

@@ -17,13 +17,15 @@ class Player;
 class Room
 {
 public:
-	Room(cWorld*, cAudioDevice*, cVector3d, bool[6]);
+	Room(cWorld*, cAudioDevice*, cVector3d, bool[6], int);
 	void initAudio(std::string source, cAudioDevice* audioDevice);
 	void setAudioPos(cVector3d pos) { audioSource->setSourcePos(pos); };
 	
 	Wall* walls[6];
 
 	static double sideLengthX, sideLengthY, sideLengthZ, scaleFactor;
+
+	int muffleLevel;
 
 	cAudioBuffer* audioBuffer;
 	cAudioSource* audioSource;

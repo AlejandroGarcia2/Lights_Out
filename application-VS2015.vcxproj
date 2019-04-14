@@ -29,7 +29,6 @@
     <ClCompile Include="src\Wall.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\audio.h" />
     <ClInclude Include="src\AudioFile.h" />
     <ClInclude Include="src\Level.h" />
     <ClInclude Include="src\MyMaterial.h" />

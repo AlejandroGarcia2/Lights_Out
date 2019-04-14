@@ -1,3 +1,4 @@
+
 //==============================================================================
 /*
 \author    Your Name
@@ -12,7 +13,6 @@
 #include <GLFW/glfw3.h>
 #include "Player.h"
 #include "Level.h"
-#include "audio.h"
 #include "AudioFile.h"
 
 //------------------------------------------------------------------------------
@@ -109,7 +109,6 @@ int movingForwards = 0;
 bool hint = false;
 
 vector<int16_t> wavData;
-cPrecisionClock *playTime;
 
 AudioFile<double> audioFile;
 
@@ -132,6 +131,10 @@ void updateGraphics(double);
 // this function contains the main haptics simulation loop
 void updateHaptics(void);
 
+void computeGain();
+void computeMuffleness();
+void handleMuffleLevelInterpolation();
+
 // this function closes the application
 void close(void);
 
@@ -153,7 +156,7 @@ int main(int argc, char* argv[])
 	//}
 	//cout << wavData.size();
 
-	audioFile.load("resources/music/aprilHaptic.wav");
+	audioFile.load("resources/music/aprilHaptic2.wav");
 	int channel = 0;
 	int numSamples = audioFile.getNumSamplesPerChannel();
 	cout << "numSamples: " << numSamples << endl;
@@ -162,10 +165,10 @@ int main(int argc, char* argv[])
 
 	/*for (int i = 0; i < numSamples; i++)
 	{
-		double currentSample = audioFile.samples[channel][i];
-		cout << "currentSample:" << currentSample << endl;
+	double currentSample = audioFile.samples[channel][i];
+	cout << "currentSample:" << currentSample << endl;
 	}*/
-	playTime = new cPrecisionClock();
+	
 	//--------------------------------------------------------------------------
 	// INITIALIZATION
 	//--------------------------------------------------------------------------
@@ -380,6 +383,7 @@ int main(int argc, char* argv[])
 	//--------------------------------------------------------------------------
 
 	level = new Level(world, player);
+	player->initAudio("resources/music/footsteops.wav", level->audioDevice);
 
 	//--------------------------------------------------------------------------
 	// WIDGETS
@@ -628,7 +632,13 @@ void updateGraphics(double delta_t)
 									 //camera->attachAudioDevice(level->audioDevice);
 									 //level->audioDevice->setListenerPos(cVector3d(50.0, 0.0, 0.0));
 
+	computeGain();
 
+	computeMuffleness();
+
+	handleMuffleLevelInterpolation();
+
+	level->audioDevice->setListenerPos(player->getPosition());
 }
 
 //------------------------------------------------------------------------------
@@ -646,63 +656,8 @@ void updateHaptics(void)
 	simulationRunning = true;
 	simulationFinished = false;
 
-	int curRoom = 0;
-
-	std::string sorc[5];
-	sorc[0] = "resources/music/aprilHapticHear.wav";
-	sorc[1] = "resources/music/aprilHapticHear.wav";
-	sorc[2] = "resources/music/aprilHapticHear.wav";
-	sorc[3] = "resources/music/aprilHapticHear.wav";
-	sorc[4] = "resources/music/aprilHapticHear.wav";
-
-	cAudioBuffer* buff[5];
-	cAudioSource* source[5];
-
-	for (int i = 0; i < 5; i++)
-	{
-		buff[i] = new cAudioBuffer();
-
-
-		bool loadStatus;
-		loadStatus = buff[i]->loadFromFile(sorc[i]);
-
-		// check for errors
-		if (!loadStatus)
-		{
-			cout << "Error - Sound file failed to load or initialize correctly." << endl;
-			//close();
-			//return (-1);
-		}
-
-		// create audio source
-		source[i] = new cAudioSource();
-
-		// assign audio buffer to audio source
-		source[i]->setAudioBuffer(buff[i]);
-
-		// set volume
-		source[i]->setGain(0.0);
-
-		// set speed at which the audio file is played. we will modulate this with the record speed.
-		source[i]->setPitch(1.0);
-
-		// loop audio play
-		source[i]->setLoop(true);
-
-		source[i]->setPosTime(0.f);
-
-		source[i]->setSourcePos(level->rooms[12]->position);
-
-	}
-	playTime->start();
-
-	for (int i = 0; i < 5; i++)
-		// start playing
-		source[i]->play();
-
 	t0 = clock.getCPUTimeSeconds();
 	// main haptic simulation loop
-
 
 	double toolR = 0.001;
 	while (simulationRunning)
@@ -735,88 +690,20 @@ void updateHaptics(void)
 		/////////////////////////////////////////////////////////////////////
 
 		tool->updateFromDevice();
-		level->audioDevice->setListenerPos(tool->getLocalPos());
-
 
 		/////////////////////////////////////////////////////////////////////
 		// COMPUTE FORCES
 		/////////////////////////////////////////////////////////////////////
 
 		tool->computeInteractionForces();
-		if (!hint)
-		{
-			level->audioDevice->setListenerPos(tool->getLocalPos() + tool->getDeviceLocalPos());
-			double lvl = 0.1 - ((tool->getLocalPos() + tool->getDeviceLocalPos()) - level->rooms[12]->position).length();
-			if (lvl < 0) lvl = 0.f;
-			//cout << lvl << endl;
-			//level->rooms[12]->audioSource->setGain(lvl);
-			//for (int i = 0; i < 5; i++)
-			//{
-			//	source[i]->setGain(lvl);
-			//}
 
-		}
-		else
-		{
-			level->audioDevice->setListenerPos(level->rooms[12]->audioSource->getSourcePos());
-			//level->rooms[12]->audioSource->setGain(0.1);
-			//for (int i = 0; i < 5; i++)
-			//{
-			//	source[i]->setGain(0.1);
-			//}
-		}
-
-		int r = player->getRoom(level);
-		//cout << r << endl;
-		if (curRoom != r)
-		{
-			//cout << "change" << endl;
-			curRoom = r;
-
-			for (int i = 0; i < 5; i++)
-			{
-				source[i]->setGain(0.0f);
-			}
-			switch (r)
-			{
-			case 0: source[4]->setGain(10.1f); break;
-			case 1: source[3]->setGain(10.1f); break;
-			case 2: source[3]->setGain(10.1f); break;
-			case 3: source[4]->setGain(10.1f); break;
-			case 4: source[3]->setGain(10.1f); break;
-			case 5: source[3]->setGain(10.1f); break;
-			case 6: source[2]->setGain(10.1f); break;
-			case 7: source[2]->setGain(10.1f); break;
-			case 8: source[1]->setGain(10.1f); break;
-			case 9: source[1]->setGain(10.1f); break;
-			case 10: source[2]->setGain(10.1f); break;
-			case 11: source[1]->setGain(10.1f); break;
-			case 12: source[0]->setGain(10.1f); break;
-			case 13: source[0]->setGain(10.1f); break;
-			case 14: source[0]->setGain(10.1f); break;
-			case 15: source[0]->setGain(10.1f); break;
-			}
-		}
-
-		int milisecond = (int)(playTime->getCurrentTimeSeconds()*1000);
-
-		//cout << "pos time:  " << source[0]->getPosTime() << endl;
-	//	if (audioFile.samples[0][milisecond] > 0.05 || audioFile.samples[0][milisecond] < -0.05) {
-			//tool->setRadius(toolR);
-		if (audioFile.samples[0][milisecond] > 0.3)
-			toolR = 0.995*toolR + 0.05*(audioFile.samples[0][milisecond]);
-		else
-			toolR = 0.0;
-	//	}
-	//	else
-//			tool->setRadius(toolR);
-		
-	//	cout << audioFile.samples[0][milisecond] << endl;
-		
+		int milisecond = (int)(level->playTime->getCurrentTimeSeconds() * 1000);
 
 		cVector3d force(0, 0, 0);
 		cVector3d torque(0, 0, 0);
 		double gripperForce = 0.0;
+
+		toolR = 0.995*toolR + 0.010*(audioFile.samples[0][milisecond]);
 
 
 		/////////////////////////////////////////////////////////////////////
@@ -826,18 +713,29 @@ void updateHaptics(void)
 		//player->translate(cVector3d(movingForwards + movingBackwards, movingRight + movingLeft, 0), delta_t);
 		cVector3d f(toolR, toolR, toolR);
 
-		cVector3d normal =  tool->m_hapticPoint->getCollisionEvent(0)->m_globalNormal;
+		cVector3d normal = tool->m_hapticPoint->getCollisionEvent(0)->m_globalNormal;
 		normal.normalize();
 
-		tool->addDeviceLocalForce(player->translateThroughDevice(delta_t));
-		//pentag 
-		//tool->addDeviceLocalForce(100*(toolR )*normal - 10*tool->getDeviceLocalLinVel());
+		if (normal.length() > 0.0001)
+		{
+			double a = acos(cDot(normal, cVector3d(0.0, 1.0, 0.0)));
+			double b = acos(cDot(normal, cVector3d(0.0, -1.0, 0.0)));
+			double c = acos(cDot(normal, cVector3d(1.0, 0.0, 0.0)));
+			double d = acos(cDot(normal, cVector3d(-1.0, 0.0, 0.0)));
+			if (a < M_PI / 20 || b < M_PI / 20)
+			{
+				tool->addDeviceLocalForce(50 * (toolR)*normal - 10 * tool->getDeviceLocalLinVel());
+			}
+			else if (c < M_PI / 20 || d < M_PI / 20)
+			{
+				tool->addDeviceLocalForce(100 * (toolR)*normal - 10 * tool->getDeviceLocalLinVel());
+			}
+		}	
 
-		
+		tool->addDeviceLocalForce(player->translateThroughDevice(delta_t));
 		/////////////////////////////////////////////////////////////////////
 		// APPLY FORCES
 		/////////////////////////////////////////////////////////////////////
-
 
 		tool->applyToDevice();
 
@@ -849,4 +747,101 @@ void updateHaptics(void)
 
 	// exit haptics thread
 	simulationFinished = true;
+}
+
+void computeGain()
+{
+	if (!hint)
+	{
+		int curRoom = player->getRoom(level);
+		if (curRoom != -1)
+		{
+			level->audioDevice->setListenerPos(player->getPhysicalPosition());
+			double lvl = 0.1 - (player->getPhysicalPosition() - level->rooms[12]->position).length();
+			if (lvl < 0) lvl = 0.f;
+			level->sourceTargetValue = lvl;
+		}
+		else
+			level->sourceTargetValue = 0.0;
+		/*
+		for (int i = 0; i < 5; i++)
+		{
+		level->sources[i]->setGain(0.0f);
+		}
+		level->sources[mf]->setGain(lvl);*/
+
+	}
+	else
+	{
+		level->audioDevice->setListenerPos(level->sources[0]->getSourcePos());
+		for (int i = 0; i < 5; i++)
+		{
+			level->sources[i]->setGain(0.0f);
+		}
+		level->sources[0]->setGain(10.1f);
+		//level->rooms[12]->audioSource->setGain(0.1);
+		//for (int i = 0; i < 5; i++)
+		//{
+		//	source[i]->setGain(0.1);
+		//}
+	}
+}
+
+void computeMuffleness()
+{
+	int r = player->getRoom(level);
+
+	//Player has changed room since last frame
+	if (player->room != r)
+	{
+		player->room = r;
+		if (r != -1)
+		{
+			int muffleTarget = level->rooms[r]->muffleLevel;
+			level->sourceTarget = muffleTarget;
+		}
+		if (r == 3)
+		{
+			level->effectSources[0]->play();
+		}
+		else if (r == 4)
+		{
+			level->effectSources[1]->play();
+		}
+		else if (r == 8)
+		{
+			level->effectSources[2]->play();
+		}
+		else
+		{
+			for (int i = 0; i < 3; i++)
+			{
+				level->effectSources[i]->stop();
+			}
+		}
+	}
+}
+
+void handleMuffleLevelInterpolation()
+{
+	//Update sound every frame so that level->sources[level->sourceTarget].gain goes towards 1 and all others go towards 0
+	// This is to stop 'pop' effect from suddently switching between muffle level audio sources
+	for (int i = 0; i < 5; i++)
+	{
+		double curGain = level->sources[i]->getGain();
+		// if i is the target audio source and it's not yet at it's target value
+		if (i == level->sourceTarget)
+		{
+			double toGain = level->sourceTargetValue - curGain;
+			if (toGain > 0.005)
+				level->sources[i]->setGain(curGain + 0.005);
+			else
+				level->sources[i]->setGain(level->sourceTargetValue);
+		}
+		else
+		{
+			if (curGain > 0.0025)
+				level->sources[i]->setGain(curGain - 0.005);
+		}
+	}
 }

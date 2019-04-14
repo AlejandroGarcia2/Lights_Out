@@ -3,6 +3,9 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+*.tlog
+*.log
+
 # User-specific files
 *.rsuser
 *.suo
@@ -347,5 +350,3 @@ MigrationBackup/
 
 *.vc.db
 *.tlog
-
-obj/Release/*

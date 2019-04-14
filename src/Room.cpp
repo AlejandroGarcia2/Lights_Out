@@ -12,7 +12,7 @@ double Room::sideLengthX = 0.025 * scaleFactor;
 double Room::sideLengthY = 0.025 * scaleFactor;
 double Room::sideLengthZ = 0.005 * scaleFactor;
 
-Room::Room(cWorld* world, cAudioDevice* audioDevice, cVector3d position, bool activated[6]) : position(position)
+Room::Room(cWorld* world, cAudioDevice* audioDevice, cVector3d position, bool activated[6],int muffleLevel) : position(position), muffleLevel(muffleLevel)
 {
 	cMatrix3d rot[6];
 	double t = M_PI / 2.;
@@ -116,7 +116,7 @@ void Room::initAudio(std::string source, cAudioDevice* audioDevice)
 	// loop audio play
 	audioSource->setLoop(true);
 
-	audioSource->setPosTime(60.f);
+	audioSource->setPosTime(0.f);
 
 	// start playing
 	audioSource->play();
