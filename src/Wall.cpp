@@ -17,7 +17,7 @@ Wall::Wall(cVector3d pos, cMatrix3d rot, std::string tex, double w, double h)
 	mesh->m_material = cMaterial::create();
 	mesh->m_material->setWhite();
 	mesh->m_material->setUseHapticShading(true);
-	mesh->setStiffness(1000.0, true);
+	mesh->setStiffness(3000.0, true);
 	//cTexture2dPtr albedoMap = cTexture2d::create();
 	//albedoMap->loadFromFile(tex);
 	//albedoMap->setWrapModeS(GL_REPEAT);

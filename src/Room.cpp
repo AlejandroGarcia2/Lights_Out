@@ -8,12 +8,16 @@ using namespace chai3d;
 using namespace std;
 
 double Room::scaleFactor = 1.0;
-double Room::sideLengthX = 0.025 * scaleFactor;
-double Room::sideLengthY = 0.025 * scaleFactor;
-double Room::sideLengthZ = 0.005 * scaleFactor;
+double Room::sideLengthX = 0.04 * scaleFactor;
+double Room::sideLengthY = 0.04 * scaleFactor;
+double Room::sideLengthZ = 0.04 * scaleFactor;
 
 Room::Room(cWorld* world, cAudioDevice* audioDevice, cVector3d position, bool activated[6],int muffleLevel) : position(position), muffleLevel(muffleLevel)
 {
+	for (int i = 0; i < 6; i++)
+	{
+		this->activated[i] = activated[i];
+	}
 	cMatrix3d rot[6];
 	double t = M_PI / 2.;
 	rot[front] = cMatrix3d(cos(t), 0, sin(t), 0, 1, 0, -sin(t), 0, cos(t));
@@ -26,10 +30,10 @@ Room::Room(cWorld* world, cAudioDevice* audioDevice, cVector3d position, bool ac
 
 	double offsetX = Room::sideLengthX / 2.0;
 	double offsetY = Room::sideLengthY / 2.0;
-	double offsetZ = Room::sideLengthZ / 2.0;
+	double offsetZ = Room::sideLengthZ / 2.0 ;
 	cVector3d pos[6];
 	pos[front] = cVector3d(-offsetX, 0.0, 0.0);
-	pos[bot] = cVector3d(0.0, 0.0, -offsetZ);
+	pos[bot] = cVector3d(0.0, 0.0, 0);
 	pos[left] = cVector3d(0.0, -offsetY, 0.0);
 	pos[right] = cVector3d(0.0, offsetY, 0.0);
 	pos[top] = cVector3d(0.0, 0.0, offsetZ);
@@ -68,11 +72,20 @@ Room::Room(cWorld* world, cAudioDevice* audioDevice, cVector3d position, bool ac
 		if (activated[i])
 		{
 			if (i == front || i == back)
+			{
 				walls[i] = new Wall(pos[i] + position, rot[i], tex[i], Room::sideLengthZ, Room::sideLengthY);
+				walls[i]->mesh->m_material->setBlue();
+			}
 			else if (i == left || i == right)
+			{
 				walls[i] = new Wall(pos[i] + position, rot[i], tex[i], Room::sideLengthZ, Room::sideLengthY);
+				walls[i]->mesh->m_material->setBlue();
+			}
 			else
+			{
 				walls[i] = new Wall(pos[i] + position, rot[i], tex[i], Room::sideLengthX, Room::sideLengthY);
+				walls[i]->mesh->m_material->setGrayDarkSlate();
+			}
 
 			walls[i]->initAudio(audio[i], audioDevice, audioPos[i]);
 			if (i == top)

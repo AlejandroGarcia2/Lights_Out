@@ -32,5 +32,7 @@ public:
 
 	std::string source;
 	cVector3d position;
+
+	bool activated[6];
 };
 

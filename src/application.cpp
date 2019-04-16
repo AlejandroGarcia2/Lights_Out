@@ -64,6 +64,7 @@ cGenericHapticDevicePtr hapticDevice;
 
 // a label to display the rates [Hz] at which the simulation is running
 cLabel* labelRates;
+cLabel* labelGameTimer;
 
 // a small sphere (cursor) representing the haptic device 
 cShapeSphere* cursor;
@@ -106,11 +107,22 @@ int movingRight = 0;
 int movingLeft = 0;
 int movingBackwards = 0;
 int movingForwards = 0;
+cVector3d movementVector;
 bool hint = false;
+double multiplier = 1.0;
 
-vector<int16_t> wavData;
 
 AudioFile<double> audioFile;
+AudioFile<double> footstepAudioFile;
+AudioFile<double> thumpAudioFile;
+
+cPrecisionClock* gameTimer;
+int secondsAllowed = 180;
+bool won = false;
+std::string endText;
+
+cMesh* cover;
+bool isCovered;
 
 //------------------------------------------------------------------------------
 // DECLARED FUNCTIONS
@@ -156,19 +168,16 @@ int main(int argc, char* argv[])
 	//}
 	//cout << wavData.size();
 
-	audioFile.load("resources/music/aprilHaptic2.wav");
-	int channel = 0;
-	int numSamples = audioFile.getNumSamplesPerChannel();
-	cout << "numSamples: " << numSamples << endl;
-	cout << "Song length: " << audioFile.getLengthInSeconds() << endl;
-	audioFile.printSummary();
+	audioFile.load("resources/music/manorHaptic.wav");
+	footstepAudioFile.load("resources/music/footsteopsHaptic.wav");
+	thumpAudioFile.load("resources/music/thumpHaptic.wav");
 
 	/*for (int i = 0; i < numSamples; i++)
 	{
 	double currentSample = audioFile.samples[channel][i];
 	cout << "currentSample:" << currentSample << endl;
 	}*/
-	
+
 	//--------------------------------------------------------------------------
 	// INITIALIZATION
 	//--------------------------------------------------------------------------
@@ -221,7 +230,7 @@ int main(int argc, char* argv[])
 	}
 
 	// create display context
-	window = glfwCreateWindow(w, h, "Frickin Maze", NULL, NULL);
+	window = glfwCreateWindow(w, h, "Lights Out", NULL, NULL);
 	if (!window)
 	{
 		cout << "failed to create window" << endl;
@@ -292,16 +301,16 @@ int main(int argc, char* argv[])
 	camera->setMirrorVertical(mirroredDisplay);
 
 	// create a directional light source
-	light = new cDirectionalLight(world);
+	//light = new cDirectionalLight(world);
 
 	// insert light source inside world
-	world->addChild(light);
+	//world->addChild(light);
 
 	// enable light source
-	light->setEnabled(true);
+	//light->setEnabled(true);
 
 	// define direction of light beam
-	light->setDir(-1.0, 0.0, 0.0);
+	//light->setDir(-1.0, 0.0, 0.0);
 
 	// use a point avatar for this scene
 	double toolRadius = 0.0;
@@ -311,6 +320,15 @@ int main(int argc, char* argv[])
 
 	// insert cursor inside world
 	//world->addChild(cursor);
+
+	cover = new cMesh();
+
+	cCreatePlane(cover, 1.0, 1.0, cVector3d(0.0, 0.0, Room::sideLengthZ));
+	cover->m_material = cMaterial::create();
+	cover->m_material->setBlack();
+	cover->setUseTransparency(true);
+	cover->m_material->setTransparencyLevel(0.0);
+	world->addChild(cover);
 
 
 	//--------------------------------------------------------------------------
@@ -328,6 +346,9 @@ int main(int argc, char* argv[])
 
 	/////////////////////////////////////////////////////////////
 	tool = new cToolCursor(world);
+	tool->m_material = cMaterial::create();
+	tool->m_material->setBlack();
+	tool->m_material->setShininess(0.5);
 	world->addChild(tool);
 	//tool->translate(0.0, 0.1, 0.0);
 
@@ -395,8 +416,13 @@ int main(int argc, char* argv[])
 	// create a label to display the haptic and graphic rates of the simulation
 	labelRates = new cLabel(font);
 	labelRates->m_fontColor.setWhite();
-	camera->m_frontLayer->addChild(labelRates);
+	//camera->m_frontLayer->addChild(labelRates);
 
+	cFontPtr font2 = NEW_CFONTCALIBRI144();
+
+	labelGameTimer = new cLabel(font2);
+	labelGameTimer->m_fontColor.setWhite();
+	camera->m_frontLayer->addChild(labelGameTimer);
 
 	//--------------------------------------------------------------------------
 	// START SIMULATION
@@ -421,9 +447,11 @@ int main(int argc, char* argv[])
 	timer.start();
 	double t_previous = timer.getCurrentTimeSeconds();
 
+	gameTimer = new cPrecisionClock();
 	// main graphic loop
 	while (!glfwWindowShouldClose(window))
 	{
+		
 		// get width and height of window
 		glfwGetWindowSize(window, &width, &height);
 
@@ -521,45 +549,105 @@ void keyCallback(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, 
 		}
 		else if (a_key == GLFW_KEY_D || a_key == GLFW_KEY_RIGHT)
 		{
-			movingRight = 1;
+			if (!player->moveClock->on())
+			{
+				cout << "move" << endl;
+				movementVector = cVector3d(0.0, 1.0, 0.0);
+				movingRight = 1;
+				multiplier = 1.f;
+			}
+
 		}
 		else if (a_key == GLFW_KEY_A || a_key == GLFW_KEY_LEFT)
 		{
-			movingLeft = -1;
+			if (!player->moveClock->on())
+			{
+				cout << "move" << endl;
+				movementVector = cVector3d(0.0, -1.0, 0.0);
+				movingLeft = -1;
+				multiplier = 1.f;
+			}
+
 		}
 		else if (a_key == GLFW_KEY_W || a_key == GLFW_KEY_UP)
 		{
-			movingForwards = -1;
+			if (!player->moveClock->on())
+			{
+				cout << "move" << endl;
+				movementVector = cVector3d(-1.0, 0.0, 0.0);
+				movingForwards = -1;
+				multiplier = 2.f;
+			}
 		}
 		else if (a_key == GLFW_KEY_S || a_key == GLFW_KEY_DOWN)
 		{
-			movingBackwards = 1;
+			cout << "move" << endl;
+			if (!player->moveClock->on())
+			{
+				movementVector = cVector3d(1.0, 0.0, 0.0);
+				movingBackwards = 1;
+				multiplier = 2.f;
+			}
+
 		}
 		else if (a_key == GLFW_KEY_SPACE)
 		{
 			hint = true;
+		}
+		else if (a_key == GLFW_KEY_ENTER)
+		{
+			if (!gameTimer->on())
+				gameTimer->start();
+			level->winLoseSource->stop();
+			level->spotLight->setEnabled(!level->spotLight->getEnabled());
+			isCovered = !isCovered;
+			if (isCovered)
+				cover->setTransparencyLevel(100.f);
+			else
+				cover->setTransparencyLevel(0.f);
+			level->winLoseSource->setAudioBuffer(level->lightsOutBuffer);
+			level->winLoseSource->setGain(5.f);
+			level->winLoseSource->play();
+		}
+		else if (a_key == GLFW_KEY_O)
+		{
+			won = false;
+			if (gameTimer->on())
+			{
+				gameTimer->reset();
+				gameTimer->stop();
+			}
+			isCovered = false;
+			level->spotLight->setEnabled(true);
+			cover->setTransparencyLevel(0.f);
+			player->tool->setLocalPos(cVector3d(0.0, 0.0, 0.0));
+		}
+		else if (a_key == GLFW_KEY_P)
+		{
+			player->tool->setHapticEnabled(true);
 		}
 	}
 	else if (a_action == GLFW_RELEASE)
 	{
 		if (a_key == GLFW_KEY_D || a_key == GLFW_KEY_RIGHT)
 		{
-			movingRight = 0;
+			//movingRight = 0;
 		}
 		else if (a_key == GLFW_KEY_A || a_key == GLFW_KEY_LEFT)
 		{
-			movingLeft = 0;
+			//movingLeft = 0;
 		}
 		else if (a_key == GLFW_KEY_W || a_key == GLFW_KEY_UP)
 		{
-			movingForwards = 0;
+			//movingForwards = 0;
 		}
 		else if (a_key == GLFW_KEY_S || a_key == GLFW_KEY_DOWN)
 		{
-			movingBackwards = 0;
+			//movingBackwards = 0;
 		}
 		else if (a_key == GLFW_KEY_SPACE)
 		{
+			level->sourceTarget = level->rooms[player->getRoom(level, player->getPosition())]->muffleLevel;
 			hint = false;
 		}
 	}
@@ -601,6 +689,30 @@ void updateGraphics(double delta_t)
 	// update position of label
 	labelRates->setLocalPos((int)(0.5 * (width - labelRates->getWidth())), 15);
 
+	int timeLeft = secondsAllowed - (int)gameTimer->getCurrentTimeSeconds();
+	int minsLeft = timeLeft / 60;
+	if (minsLeft < 0) minsLeft = 0;
+	int secsLeft = timeLeft % 60;
+	if(secsLeft < 0) secsLeft = 0;
+	string extra = secsLeft < 10 ? "0" : "";
+	if (minsLeft == 3)
+	{
+		labelGameTimer->setText("Press Enter to start");
+	}
+	else if (!won)
+		labelGameTimer->setText(to_string(minsLeft) + ":" + extra + to_string(secsLeft));
+	else
+		labelGameTimer->setText(endText);
+	labelGameTimer->setLocalPos((int)(0.5 * (width - labelGameTimer->getWidth())), height - 160);
+
+	if (minsLeft == 0 && secsLeft == 9 && !won)
+	{
+		level->winLoseSource->stop();
+		level->winLoseSource->setAudioBuffer(level->loseBuffer);
+		level->winLoseSource->setGain(0.5f);
+		level->winLoseSource->play();
+	}
+
 
 	/////////////////////////////////////////////////////////////////////
 	// RENDER SCENE
@@ -632,13 +744,22 @@ void updateGraphics(double delta_t)
 									 //camera->attachAudioDevice(level->audioDevice);
 									 //level->audioDevice->setListenerPos(cVector3d(50.0, 0.0, 0.0));
 
+	player->body->setLocalPos(tool->getLocalPos() + cVector3d(0.0, 0.0, 0.0025));
+	player->arm->m_pointA = player->getPosition() + cVector3d(0.0, 0.00125, 0.0025);
+	player->arm->m_pointB = player->getProxyPosition();
+	//level->spotLight->setLocalPos(player->getPosition() + cVector3d(0.0, 0.0, 0.05));
+
+
 	computeGain();
 
 	computeMuffleness();
 
 	handleMuffleLevelInterpolation();
 
-	level->audioDevice->setListenerPos(player->getPosition());
+	player->footstepsSoundSource->setSourcePos(player->getPosition());
+	player->wallSoundSource->setSourcePos(player->getProxyPosition());
+	level->audioDevice->setListenerPos(player->getProxyPosition());
+
 }
 
 //------------------------------------------------------------------------------
@@ -660,6 +781,7 @@ void updateHaptics(void)
 	// main haptic simulation loop
 
 	double toolR = 0.001;
+	double footstepsToolR = 0.001;
 	while (simulationRunning)
 	{
 		delta_t = clock.getCPUTimeSeconds() - t0;
@@ -690,6 +812,7 @@ void updateHaptics(void)
 		/////////////////////////////////////////////////////////////////////
 
 		tool->updateFromDevice();
+		player->micBase->setLocalPos(player->getProxyPosition() - cVector3d(0.0, 0.0, 0.0005));
 
 		/////////////////////////////////////////////////////////////////////
 		// COMPUTE FORCES
@@ -703,7 +826,7 @@ void updateHaptics(void)
 		cVector3d torque(0, 0, 0);
 		double gripperForce = 0.0;
 
-		toolR = 0.995*toolR + 0.010*(audioFile.samples[0][milisecond]);
+		toolR = 0.995*toolR + 0.05*(audioFile.samples[0][milisecond]);
 
 
 		/////////////////////////////////////////////////////////////////////
@@ -718,6 +841,7 @@ void updateHaptics(void)
 
 		if (normal.length() > 0.0001)
 		{
+		
 			double a = acos(cDot(normal, cVector3d(0.0, 1.0, 0.0)));
 			double b = acos(cDot(normal, cVector3d(0.0, -1.0, 0.0)));
 			double c = acos(cDot(normal, cVector3d(1.0, 0.0, 0.0)));
@@ -725,14 +849,34 @@ void updateHaptics(void)
 			if (a < M_PI / 20 || b < M_PI / 20)
 			{
 				tool->addDeviceLocalForce(50 * (toolR)*normal - 10 * tool->getDeviceLocalLinVel());
+				if (!player->micUpAgainstWall)
+				{
+					player->toggleEarOnWall();
+					player->wallSoundSource->play();
+				}
 			}
 			else if (c < M_PI / 20 || d < M_PI / 20)
 			{
 				tool->addDeviceLocalForce(100 * (toolR)*normal - 10 * tool->getDeviceLocalLinVel());
+				if (!player->micUpAgainstWall)
+				{
+					player->toggleEarOnWall();
+					player->wallSoundSource->play();
+				}
 			}
-		}	
+		}
+		else
+		{
+			if (player->micUpAgainstWall)
+			{
+				player->toggleEarOnWall();
+				player->wallSoundSource->stop();
+			}
+		}
 
-		tool->addDeviceLocalForce(player->translateThroughDevice(delta_t));
+		tool->addDeviceLocalForce(player->handleMovement(movementVector, delta_t, level, multiplier));
+
+		tool->addDeviceLocalForce(-tool->getDeviceLocalPos() * 60.f);
 		/////////////////////////////////////////////////////////////////////
 		// APPLY FORCES
 		/////////////////////////////////////////////////////////////////////
@@ -751,15 +895,25 @@ void updateHaptics(void)
 
 void computeGain()
 {
+	
 	if (!hint)
 	{
-		int curRoom = player->getRoom(level);
+		int curRoom = player->getRoom(level, player->getPhysicalPosition());
 		if (curRoom != -1)
 		{
 			level->audioDevice->setListenerPos(player->getPhysicalPosition());
-			double lvl = 0.1 - (player->getPhysicalPosition() - level->rooms[12]->position).length();
+			double lvl = 4.f * Room::sideLengthX - (player->getProxyPosition() - level->rooms[level->endRoom]->position).length();
 			if (lvl < 0) lvl = 0.f;
 			level->sourceTargetValue = lvl;
+			if ((player->getProxyPosition() - level->rooms[level->endRoom]->position).length() < 0.0175)
+			{
+				won = true;
+				level->winLoseSource->stop();
+				level->winLoseSource->setAudioBuffer(level->winBuffer);
+				level->winLoseSource->setGain(0.5f);
+				level->winLoseSource->play();
+				endText = "You win!";
+			}
 		}
 		else
 			level->sourceTargetValue = 0.0;
@@ -774,22 +928,15 @@ void computeGain()
 	else
 	{
 		level->audioDevice->setListenerPos(level->sources[0]->getSourcePos());
-		for (int i = 0; i < 5; i++)
-		{
-			level->sources[i]->setGain(0.0f);
-		}
-		level->sources[0]->setGain(10.1f);
-		//level->rooms[12]->audioSource->setGain(0.1);
-		//for (int i = 0; i < 5; i++)
-		//{
-		//	source[i]->setGain(0.1);
-		//}
+		level->sourceTarget = 0;
+		level->sourceTargetValue = 4 * Room::sideLengthX;
+
 	}
 }
 
 void computeMuffleness()
 {
-	int r = player->getRoom(level);
+	int r = player->getRoom(level, player->getPosition());
 
 	//Player has changed room since last frame
 	if (player->room != r)
@@ -800,25 +947,47 @@ void computeMuffleness()
 			int muffleTarget = level->rooms[r]->muffleLevel;
 			level->sourceTarget = muffleTarget;
 		}
-		if (r == 3)
+		for (int i = 0; i < level->deadEndRooms.size(); i++)
+		{
+			level->effectSource->stop();
+		}
+		for (int i = 0; i < level->deadEndRooms.size(); i++)
+		{
+			if (r == level->deadEndRooms[i])
+			{
+				level->effectSource->setAudioBuffer(level->effectBuffers[i]);
+				level->effectSource->setSourcePos(level->rooms[r]->position);
+				level->effectSource->play();
+			}
+
+		}
+		/*if (r == level->deadEndRooms[0])
 		{
 			level->effectSources[0]->play();
 		}
-		else if (r == 4)
+		else if (r == level->deadEndRooms[1])
 		{
 			level->effectSources[1]->play();
 		}
-		else if (r == 8)
+		else if (r == level->deadEndRooms[2])
 		{
 			level->effectSources[2]->play();
 		}
+		else if (r == level->deadEndRooms[3])
+		{
+			level->effectSources[3]->play();
+		}
+		else if (r == level->deadEndRooms[4])
+		{
+			level->effectSources[4]->play();
+		}
 		else
 		{
-			for (int i = 0; i < 3; i++)
+			for (int i = 0; i < 5; i++)
 			{
 				level->effectSources[i]->stop();
 			}
-		}
+		}*/
 	}
 }
 
@@ -833,15 +1002,15 @@ void handleMuffleLevelInterpolation()
 		if (i == level->sourceTarget)
 		{
 			double toGain = level->sourceTargetValue - curGain;
-			if (toGain > 0.005)
-				level->sources[i]->setGain(curGain + 0.005);
+			if (toGain > 0.05)
+				level->sources[i]->setGain(curGain + 0.05);
 			else
 				level->sources[i]->setGain(level->sourceTargetValue);
 		}
 		else
 		{
-			if (curGain > 0.0025)
-				level->sources[i]->setGain(curGain - 0.005);
+			if (curGain > 0.05)
+				level->sources[i]->setGain(curGain - 0.05);
 		}
 	}
 }
